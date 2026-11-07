@@ -869,15 +869,21 @@ static void LoadPropertiesFromSecondStageRes(std::map<std::string, std::string>*
     }
 }
 
+// persist.sys.evox_debug_enabled (inherited) turns a build debuggable with unsecured adb from
+// the next boot on. It falls under system_prop, which privileged apps can set, and a user build
+// has no setting for it, so a user build ignores it and keeps its own debug and adb props.
+static bool EvoxDebugEnabled() {
+    if (GetProperty("ro.build.type", "") == "user") return false;
+    return GetProperty("persist.sys.evox_debug_enabled", "0") == "1";
+}
+
 // persist.sys.usb.config values can't be combined on build-time when property
 // files are split into each partition.
 // So we need to apply the same rule of build/make/tools/post_process_props.py
 // on runtime.
 static void update_sys_usb_config() {
     // emulators don't have USB, they enable adb another way.
-    const char* DEBUG_PROP = "persist.sys.evox_debug_enabled";
-    std::string debug_value = GetProperty(DEBUG_PROP, "0");
-    bool debug_enabled = debug_value == "1";
+    bool debug_enabled = EvoxDebugEnabled();
 
     const bool add_adb_func = android::base::GetBoolProperty("ro.debuggable", false) &&
                               android::base::GetBoolProperty("ro.adb.has_usb", true);
@@ -1315,8 +1321,9 @@ void LoadDebugProperties() {
     uint32_t res;
 
     std::string debug_value = GetProperty(DEBUG_PROP, "0");
-    bool debug_enabled = debug_value == "1";
-    LOG(INFO) << DEBUG_PROP << " = " << debug_value;
+    bool debug_enabled = EvoxDebugEnabled();
+    LOG(INFO) << DEBUG_PROP << " = " << debug_value
+              << (debug_value == "1" && !debug_enabled ? " (ignored on user builds)" : "");
 
     const std::pair<const char*, const char*> debug_props[] = {
         {"service.adb.root", debug_enabled ? "1" : "0"},
