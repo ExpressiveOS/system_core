@@ -869,12 +869,12 @@ static void LoadPropertiesFromSecondStageRes(std::map<std::string, std::string>*
     }
 }
 
-// persist.sys.evox_debug_enabled (inherited) turns a build debuggable with unsecured adb from
+// persist.sys.expressiveos.debug_enabled (inherited) turns a build debuggable with unsecured adb from
 // the next boot on. It falls under system_prop, which privileged apps can set, and a user build
 // has no setting for it, so a user build ignores it and keeps its own debug and adb props.
-static bool EvoxDebugEnabled() {
+static bool RomDebugEnabled() {
     if (GetProperty("ro.build.type", "") == "user") return false;
-    return GetProperty("persist.sys.evox_debug_enabled", "0") == "1";
+    return GetProperty("persist.sys.expressiveos.debug_enabled", "0") == "1";
 }
 
 // persist.sys.usb.config values can't be combined on build-time when property
@@ -883,7 +883,7 @@ static bool EvoxDebugEnabled() {
 // on runtime.
 static void update_sys_usb_config() {
     // emulators don't have USB, they enable adb another way.
-    bool debug_enabled = EvoxDebugEnabled();
+    bool debug_enabled = RomDebugEnabled();
 
     const bool add_adb_func = android::base::GetBoolProperty("ro.debuggable", false) &&
                               android::base::GetBoolProperty("ro.adb.has_usb", true);
@@ -1316,12 +1316,12 @@ void LoadVbMetaOverrides() {
 }
 
 void LoadDebugProperties() {
-    const char* DEBUG_PROP = "persist.sys.evox_debug_enabled";
+    const char* DEBUG_PROP = "persist.sys.expressiveos.debug_enabled";
     std::string error;
     uint32_t res;
 
     std::string debug_value = GetProperty(DEBUG_PROP, "0");
-    bool debug_enabled = EvoxDebugEnabled();
+    bool debug_enabled = RomDebugEnabled();
     LOG(INFO) << DEBUG_PROP << " = " << debug_value
               << (debug_value == "1" && !debug_enabled ? " (ignored on user builds)" : "");
 
