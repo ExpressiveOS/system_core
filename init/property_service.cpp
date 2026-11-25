@@ -1220,7 +1220,7 @@ static void SetSafetyNetProps() {
         {"ro.boot.flash.locked", "1"},
         {"ro.boot.vbmeta.device_state", "locked"},
         {"ro.boot.vbmeta.hash_alg", "sha256"},
-        {"ro.boot.vbmeta.avb_version", "1.0"},
+        {"ro.boot.vbmeta.avb_version", "1.3"},
         {"ro.boot.vbmeta.invalidate_on_error", "yes"},
         {"ro.boot.verifiedbootstate", "green"},
         {"ro.boot.veritymode", "enforcing"},
@@ -1657,10 +1657,18 @@ static void ProcessKernelDt() {
 
 constexpr auto ANDROIDBOOT_PREFIX = "androidboot."sv;
 
+static bool ShouldSkipBootDiagnosticKey(std::string_view suffix) {
+    return SPOOF_SAFETYNET && !IsRecoveryMode() &&
+           (suffix == "verifiedbooterror" || suffix == "verifyerrorpart");
+}
+
 static void ProcessKernelCmdline() {
     android::fs_mgr::ImportKernelCmdline([&](const std::string& key, const std::string& value) {
         if (StartsWith(key, ANDROIDBOOT_PREFIX)) {
-            InitPropertySet("ro.boot." + key.substr(ANDROIDBOOT_PREFIX.size()), value);
+            std::string suffix = key.substr(ANDROIDBOOT_PREFIX.size());
+            if (!ShouldSkipBootDiagnosticKey(suffix)) {
+                InitPropertySet("ro.boot." + suffix, value);
+            }
         }
     });
 }
@@ -1669,7 +1677,10 @@ static void ProcessKernelCmdline() {
 static void ProcessBootconfig() {
     android::fs_mgr::ImportBootconfig([&](const std::string& key, const std::string& value) {
         if (StartsWith(key, ANDROIDBOOT_PREFIX)) {
-            InitPropertySet("ro.boot." + key.substr(ANDROIDBOOT_PREFIX.size()), value);
+            std::string suffix = key.substr(ANDROIDBOOT_PREFIX.size());
+            if (!ShouldSkipBootDiagnosticKey(suffix)) {
+                InitPropertySet("ro.boot." + suffix, value);
+            }
         }
     });
 }
